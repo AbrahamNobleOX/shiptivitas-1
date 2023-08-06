@@ -131,26 +131,77 @@ export default class Board extends React.Component {
   }
 
   componentDidMount() {
-    const swimlaneContainers = [
+    this.drake = Dragula([
       this.swimlanes.backlog.current,
       this.swimlanes.inProgress.current,
       this.swimlanes.complete.current,
+    ]);
+    this.drake.on("drop", (el, target, source, sibling) =>
+      this.updateClient(el, target, source, sibling)
+    );
+  }
+
+  componentWillUnmount() {
+    this.drake.remove();
+  }
+
+  /**
+   * Change the status of client when a Card is moved
+   */
+  updateClient(el, target, _, sibling) {
+    // Reverting DOM changes from Dragula
+    this.drake.cancel(true);
+
+    // Find out which swimlane the Card was moved to
+    let targetSwimlane = "backlog";
+    if (target === this.swimlanes.inProgress.current) {
+      targetSwimlane = "in-progress";
+    } else if (target === this.swimlanes.complete.current) {
+      targetSwimlane = "complete";
+    }
+
+    // Create a new clients array
+    const clientsList = [
+      ...this.state.clients.backlog,
+      ...this.state.clients.inProgress,
+      ...this.state.clients.complete,
     ];
+    const clientThatMoved = clientsList.find(
+      (client) => client.id === el.dataset.id
+    );
+    const clientThatMovedClone = {
+      ...clientThatMoved,
+      status: targetSwimlane,
+    };
 
-    const drake = Dragula(swimlaneContainers);
+    // Remove ClientThatMoved from the clientsList
+    const updatedClients = clientsList.filter(
+      (client) => client.id !== clientThatMovedClone.id
+    );
 
-    drake.on("drop", (el, target, source, sibling) => {
-      // Get swimlane names for source and target
+    // Place ClientThatMoved just before the sibling client, keeping the order
+    const index = updatedClients.findIndex(
+      (client) => sibling && client.id === sibling.dataset.id
+    );
+    updatedClients.splice(
+      index === -1 ? updatedClients.length : index,
+      0,
+      clientThatMovedClone
+    );
 
-      const elSwimlane = el.dataset.status;
-      // const elSwimlane = el.dataset.id;
-      const targetSwimlane = target;
-
-      console.log(`From ${elSwimlane} to ??`);
-      console.log(targetSwimlane);
-
-      el.dataset.status = el.dataset.status.replace("backlog", "complete");
-      el.className = el.className.replace("grey", "blue");
+    // Update React state to reflect changes
+    this.setState({
+      clients: {
+        backlog: updatedClients.filter(
+          (client) => !client.status || client.status === "backlog"
+        ),
+        inProgress: updatedClients.filter(
+          (client) => client.status && client.status === "in-progress"
+        ),
+        complete: updatedClients.filter(
+          (client) => client.status && client.status === "complete"
+        ),
+      },
     });
   }
 
