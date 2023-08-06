@@ -139,18 +139,18 @@ export default class Board extends React.Component {
 
     const drake = Dragula(swimlaneContainers);
 
-    drake.on("over", (el, target, source, sibling) => {
+    drake.on("drop", (el, target, source, sibling) => {
       // Get swimlane names for source and target
 
       const elSwimlane = el.dataset.status;
       // const elSwimlane = el.dataset.id;
       const targetSwimlane = target;
 
-      console.log(`From ${elSwimlane}`);
+      console.log(`From ${elSwimlane} to ??`);
       console.log(targetSwimlane);
 
       el.dataset.status = el.dataset.status.replace("backlog", "complete");
-      // el.className = el.className.replace("grey", "blue");
+      el.className = el.className.replace("grey", "blue");
     });
   }
 
